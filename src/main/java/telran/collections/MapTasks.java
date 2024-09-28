@@ -1,6 +1,7 @@
 package telran.collections;
 
 import java.util.*;
+import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -18,13 +19,12 @@ public class MapTasks {
         TreeMap<Long, TreeSet<String>> sortedOccurrencesMap = getSortedOccurrencesMap(occurrencesMap);
         displaySortedOoccurrencesMap(sortedOccurrencesMap);
     }
-
     public static void displayOccurrencesStream(String[] strings) {
         Arrays.stream(strings).collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
-                .entrySet().stream().sorted((e1, e2) -> {
-                    int res = Long.compare(e2.getValue(), e1.getValue());
-                    return res == 0 ? e1.getKey().compareTo(e2.getKey()) : res;
-                }).forEach(e -> System.out.printf("%s -> %d\n", e.getKey(), e.getValue()));
+        .entrySet().stream().sorted((e1, e2) -> {
+            int res = Long.compare(e2.getValue(), e1.getValue());
+            return res == 0 ? e1.getKey().compareTo(e2.getKey()) : res;
+        }).forEach(e -> System.out.printf("%s -> %d\n", e.getKey(), e.getValue()));
     }
 
     private static void displaySortedOoccurrencesMap(TreeMap<Long, TreeSet<String>> sortedOccurrencesMap) {
@@ -60,39 +60,25 @@ public class MapTasks {
 
     public static Map<Integer, Long> getDistributionByNumberOfDigits(int[][] array) {
 
-        return streamOfNumbers(array).collect(Collectors.groupingBy(n -> Integer.toString(n).length(),
-                Collectors.counting()));
+        return streamOfNumbers(array).collect(Collectors.groupingBy(n -> Integer.toString(n).length(), 
+        Collectors.counting()));
     }
-
     public static void displayDigitsDistribution() {
-        Integer[] numbers = new Integer[1000_000];
-        Random random = new Random();
-        for (int i = 0; i < numbers.length; i++) {
-            numbers[i] = random.nextInt(Integer.MAX_VALUE);
-        }
-        Map<Integer, Long> map = getDigitDistrSortingDescending(getDigitDistrNotSorted(numbers));
-        map.entrySet().stream().forEach(e -> System.out.printf("%s -> %d\n", e.getKey(), e.getValue()));
-    }
+        new Random().longs (1_000_000, 0, Integer.MAX_VALUE + 1l)
+        .flatMap(n -> Long.toString(n).chars().asLongStream()).boxed()
+        .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
+        .entrySet().stream().sorted(Entry.comparingByValue(Comparator.reverseOrder()))
+        .forEach(e -> System.out.printf("%c -> %d\n", e.getKey().intValue(), e.getValue()));
+       
 
-    private static Map<Integer, Long> getDigitDistrSortingDescending(Map<Integer, Long> map) {
-        return map.entrySet().stream().sorted(Map.Entry.<Integer, Long>comparingByValue().reversed())
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
+        
     }
-
-    private static Map<Integer, Long> getDigitDistrNotSorted(Integer[] numbers) {
-        return getStreamOfDigits(numbers).collect(Collectors.groupingBy(n -> n, Collectors.counting()));
-    }
-
-    private static Stream<Integer> getStreamOfDigits(Integer[] numbers) {
-        return Arrays.stream(numbers).flatMapToInt(i -> String.valueOf(i).chars().map(Character::getNumericValue))
-                .boxed();
-    }
-
     public static ParenthesesMaps getParenthesesMaps(Character[][] openCloseParentheses) {
-        Map<Character, Character> openCloseMap = Stream.of(openCloseParentheses).
-        collect(Collectors.toMap(brackets -> brackets[0], brackets -> brackets[1]));
-        Map<Character, Character> closeOpenMap = Stream.of(openCloseParentheses)
-                .collect(Collectors.toMap(brackets -> brackets[1], brackets -> brackets[0]));
+        Map<Character, Character> openCloseMap = getMap(openCloseParentheses, ar -> ar[0], ar -> ar[1]);
+        Map<Character, Character> closeOpenMap = getMap(openCloseParentheses, ar -> ar[1], ar -> ar[0]);
         return new ParenthesesMaps(openCloseMap, closeOpenMap);
+    }
+    private static Map<Character, Character> getMap(Character[][] openCloseParentheses, Function<Character[],Character> keyFn, Function<Character[],Character> valueFn) {
+        return Arrays.stream(openCloseParentheses).collect(Collectors.toMap(keyFn, valueFn));
     }
 }
